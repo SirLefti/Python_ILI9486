@@ -38,6 +38,6 @@ Adafruit invests time and resources providing this open source code, please supp
 
 Written by Tony DiCola for Adafruit Industries.
 Adapted for ILI9486 by Liqun Hu.
-Modified by Thorben Yzer / SirLefti.
+Modified by Thorben Yzer.
 
 MIT license, all text above must be included in any redistribution

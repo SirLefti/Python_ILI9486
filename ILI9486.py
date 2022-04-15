@@ -18,6 +18,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
+from enum import Enum
 import time
 import numpy as np
 from PIL import Image, ImageDraw
@@ -56,15 +57,6 @@ CMD_VCOMCTL = 0xC5
 CMD_PGAMCTL = 0xE0
 CMD_NGAMCTL = 0xE1
 
-UPPER_LEFT = 0
-UPPER_LEFT_MIRRORED = 1
-LOWER_LEFT = 2
-LOWER_LEFT_MIRRORED = 3
-UPPER_RIGHT = 4
-UPPER_RIGHT_MIRRORED = 5
-LOWER_RIGHT = 6
-LOWER_RIGHT_MIRRORED = 7
-
 
 def image_to_data(image: Image) -> object:
     """Converts a PIL image to 666RGB format that can be drawn on the LCD."""
@@ -73,10 +65,30 @@ def image_to_data(image: Image) -> object:
     return np.dstack((pb[:, :, 0] & 0xFC, pb[:, :, 1] & 0xFC, pb[:, :, 2] & 0xFC)).flatten().tolist()
 
 
+class Origin(Enum):
+    """Representation of the display origin. The origin is defined by the position of the image relative to the default
+    orientation of the raspberry. The default orientation has the GPIO pins being on top, so that the raspberry logo
+    and the model's name are readable. The reference point is then the upper left corner, where GPIO pin 1 is located.
+    The origin UPPER_LEFT is the default origin, because the reference point is in the upper left corner."""
+
+    # data: MY | MX | MV | ML | BGR | MH | X | X
+    # The MV bit controls the format. 0 means portrait mode, 1 means landscape mode.
+    # The BGR bit is a bit weird. 0 means RGB mode, 1 means BGR mode. However, we always set it to 1 / BGR, despite
+    # using RGB pixel format. Maybe the documentation is wrong here.
+    UPPER_LEFT = 0x28
+    UPPER_LEFT_MIRRORED = 0xA8
+    LOWER_LEFT = 0x48
+    LOWER_LEFT_MIRRORED = 0x08
+    UPPER_RIGHT = 0x88
+    UPPER_RIGHT_MIRRORED = 0xC8
+    LOWER_RIGHT = 0xE8
+    LOWER_RIGHT_MIRRORED = 0x68
+
+
 class ILI9486:
     """Representation of an ILI9486 TFT."""
 
-    def __init__(self, spi, dc: int, rst: int = None, *, origin=UPPER_LEFT):
+    def __init__(self, spi, dc: int, rst: int = None, *, origin: Origin = Origin.UPPER_LEFT):
         """Creates an instance of the display using the given SPI connection. Must provide the SPI driver and the GPIO
         pin number for the DC pin. Can optionally provide the GPIO pin number for the reset pin. Optionally the origin
         can be set. The default is UPPER_LEFT, which is landscape mode this the bottom of the image located at the
@@ -101,8 +113,8 @@ class ILI9486:
         self.__spi.lsbfirst = False  # set to MSB_FIRST / most significant bit first
         self.__spi.max_speed_hz = 64000000
 
-        # swap width and height if selected origin is landscape mode
-        if self.__origin in [UPPER_LEFT, UPPER_LEFT_MIRRORED, LOWER_RIGHT, LOWER_RIGHT_MIRRORED]:
+        # swap width and height if selected origin is landscape mode by checking if third bit is 1
+        if self.__origin.value & 0x20:
             self.__width, self.__height = self.__height, self.__width
         self.__buffer = Image.new('RGB', (self.__width, self.__height), (0, 0, 0))
 
@@ -164,28 +176,7 @@ class ILI9486:
                   chunk_size=1)  # values must be sent one by one, thus setting chunk size to 1
 
         self.command(CMD_MADCTL)  # memory address control
-        # data: MY | MX | MV | ML | BGR | MH | X | X
-        # The MV bit controls the format. 0 means portrait mode, 1 means landscape mode.
-        # The BGR bit is a bit weird. 0 means RGB mode, 1 means BGR mode. However, we always set it to 1 / BGR, despite
-        # using RGB pixel format. Maybe the documentation is wrong here.
-        if self.__origin == UPPER_LEFT:  # landscape mode, bottom near PWR
-            self.data(0x28)
-        elif self.__origin == UPPER_LEFT_MIRRORED:
-            self.data(0xA8)
-        elif self.__origin == LOWER_LEFT:  # default rotated 180°, portrait mode, bottom near USB
-            self.data(0x48)
-        elif self.__origin == LOWER_LEFT_MIRRORED:
-            self.data(0x08)
-        elif self.__origin == UPPER_RIGHT:  # default, portrait mode, bottom near SD
-            self.data(0x88)
-        elif self.__origin == UPPER_RIGHT_MIRRORED:
-            self.data(0xC8)
-        elif self.__origin == LOWER_RIGHT:  # landscape mode, bottom near GPIO
-            self.data(0xE8)
-        elif self.__origin == LOWER_RIGHT_MIRRORED:
-            self.data(0x68)
-        else:
-            raise ValueError('Unknown origin: {0}'.format(self.__origin))
+        self.data(self.__origin.value)
 
         self.command(CMD_SLPOUT)
         self.command(CMD_DISPON)

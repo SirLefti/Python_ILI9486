@@ -1,6 +1,9 @@
 # OS files
 **/.DS_Store
 
-#IDEA files
+# IDEA files
 .idea/
 *.iml
+
+# Python files
+__pycache__/
