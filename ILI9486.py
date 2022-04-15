@@ -23,6 +23,7 @@ import time
 import numpy as np
 from PIL import Image, ImageDraw
 import RPi.GPIO as GPIO
+from spidev import SpiDev
 
 # constants
 LCD_WIDTH = 320
@@ -88,7 +89,7 @@ class Origin(Enum):
 class ILI9486:
     """Representation of an ILI9486 TFT."""
 
-    def __init__(self, spi, dc: int, rst: int = None, *, origin: Origin = Origin.UPPER_LEFT):
+    def __init__(self, spi: SpiDev, dc: int, rst: int = None, *, origin: Origin = Origin.UPPER_LEFT):
         """Creates an instance of the display using the given SPI connection. Must provide the SPI driver and the GPIO
         pin number for the DC pin. Can optionally provide the GPIO pin number for the reset pin. Optionally the origin
         can be set. The default is UPPER_LEFT, which is landscape mode this the bottom of the image located at the
@@ -128,14 +129,15 @@ class ILI9486:
             for start in range(0, len(data), chunk_size):
                 end = min(start + chunk_size, len(data))
                 self.__spi.writebytes(data[start: end])
+        return self
 
     def command(self, data):
         """Writes a byte or an array of bytes to the display as a command."""
-        self.send(data, False)
+        return self.send(data, False)
 
     def data(self, data):
         """Writes a byte or an array of bytes to the display as data."""
-        self.send(data, True)
+        return self.send(data, True)
 
     def reset(self):
         """Resets the display if a reset pin is provided."""
@@ -148,43 +150,38 @@ class ILI9486:
             time.sleep(.120)  # wait 120 ms for finishing blanking and resetting
             self.__inverted = False
             self.__idle = False
+        return self
 
     def _init_sequence(self):
         """Initializes the display. Protected in case you want to override it for e.g. gamma control"""
-        self.command(CMD_IFMODE)
-        self.data(0x00)
+        self.command(CMD_IFMODE).data(0x00)
         self.command(CMD_SLPOUT)  # turns off the sleep mode
         time.sleep(0.020)
 
-        self.command(CMD_PXLFMT)
-        self.data(0x66)  # 18 bits per pixel
-        self.command(CMD_RDPXLFMT)
-        self.data(0x66)  # 18 bits per pixel
+        self.command(CMD_PXLFMT).data(0x66)  # 18 bits per pixel
+        self.command(CMD_RDPXLFMT).data(0x66)  # 18 bits per pixel
 
-        self.command(CMD_PWRCTLNOR)
-        self.command(0x44)
+        self.command(CMD_PWRCTLNOR).command(0x44)
 
-        self.command(CMD_VCOMCTL)
-        self.send([0x00, 0x00, 0x00, 0x00], True, chunk_size=1)
+        self.command(CMD_VCOMCTL).send([0x00, 0x00, 0x00, 0x00], True, chunk_size=1)
 
-        self.command(CMD_PGAMCTL)
-        self.send([0x0F, 0x1F, 0x1C, 0x0C, 0x0F, 0x08, 0x48, 0x98, 0x37, 0x0A, 0x13, 0x04, 0x11, 0x0D, 0x00], True,
+        self.command(CMD_PGAMCTL)\
+            .send([0x0F, 0x1F, 0x1C, 0x0C, 0x0F, 0x08, 0x48, 0x98, 0x37, 0x0A, 0x13, 0x04, 0x11, 0x0D, 0x00], True,
                   chunk_size=1)  # values must be sent one by one, thus setting chunk size to 1
 
-        self.command(CMD_NGAMCTL)
-        self.send([0x0F, 0x32, 0x2E, 0x0B, 0x0D, 0x05, 0x47, 0x75, 0x37, 0x06, 0x10, 0x03, 0x24, 0x20, 0x00], True,
+        self.command(CMD_NGAMCTL)\
+            .send([0x0F, 0x32, 0x2E, 0x0B, 0x0D, 0x05, 0x47, 0x75, 0x37, 0x06, 0x10, 0x03, 0x24, 0x20, 0x00], True,
                   chunk_size=1)  # values must be sent one by one, thus setting chunk size to 1
 
-        self.command(CMD_MADCTL)  # memory address control
-        self.data(self.__origin.value)
+        self.command(CMD_MADCTL).data(self.__origin.value)  # memory address control
 
         self.command(CMD_SLPOUT)
         self.command(CMD_DISPON)
+        return self
 
     def begin(self):
         """Initializes the display by resetting it and calling the init sequence."""
-        self.reset()
-        self._init_sequence()
+        return self.reset()._init_sequence()
 
     def set_window(self, x0=0, y0=0, x1=None, y1=None):
         """Sets the pixel address window for proceeding drawing commands."""
@@ -202,6 +199,7 @@ class ILI9486:
         self.data(y0 & 0xFF)
         self.data(y1 >> 8)
         self.data(y1 & 0xFF)
+        return self
 
     def display(self, image=None):
         """Writes the display buffer or provided image to the display. If no
@@ -221,11 +219,13 @@ class ILI9486:
         self.command(CMD_WRMEM)
         if isinstance(data, list):
             self.data(list(data))
+        return self
 
     def clear(self, color=(0, 0, 0)):
         """Clears the image buffer to the specified RGB color or black if not provided."""
         width, height = self.__buffer.size
         self.__buffer.putdata([color] * (width * height))
+        return self
 
     def draw(self) -> ImageDraw:
         """Returns a PIL ImageDraw instance for 2D drawing on the image buffer."""
@@ -244,6 +244,7 @@ class ILI9486:
         else:
             self.command(CMD_INVOFF)
         self.__inverted = state
+        return self
 
     def is_idle(self) -> bool:
         """Returns the current idle state."""
@@ -259,11 +260,12 @@ class ILI9486:
         else:
             self.command(CMD_IDLOFF)
         self.__idle = state
+        return self
 
     def on(self):
         """Turns the display on."""
-        self.command(CMD_DISPON)
+        return self.command(CMD_DISPON)
 
     def off(self):
         """Turns the display off."""
-        self.command(CMD_DISPOFF)
+        return self.command(CMD_DISPOFF)

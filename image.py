@@ -1,6 +1,6 @@
 from PIL import Image
 import RPi.GPIO as GPIO
-import spidev as SPI
+from spidev import SpiDev
 import time
 import ILI9486 as LCD
 import config
@@ -9,8 +9,8 @@ import config
 if __name__ == '__main__':
     try:
         GPIO.setmode(GPIO.BCM)
-        lcd = LCD.ILI9486(dc=config.DC_PIN, rst=config.RST_PIN, spi=SPI.SpiDev(config.SPI_BUS, config.SPI_DEVICE))
-        lcd.begin()
+        lcd = LCD.ILI9486(dc=config.DC_PIN, rst=config.RST_PIN, spi=SpiDev(config.SPI_BUS, config.SPI_DEVICE))\
+            .begin()
 
         print('Loading image...')
         image = Image.open('sample.png')
@@ -38,8 +38,7 @@ if __name__ == '__main__':
             lcd.idle(False)
             time.sleep(1)
             print('Clearing display')
-            lcd.clear()
-            lcd.display()
+            lcd.clear().display()
             time.sleep(1)
             print('Resetting display')
             lcd.begin()
