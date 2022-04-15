@@ -110,10 +110,6 @@ class ILI9486:
             GPIO.setup(self.__rst, GPIO.OUT)
             GPIO.output(self.__rst, GPIO.HIGH)
 
-        self.__spi.mode = 0b10  # [CPOL|CPHA] -> polarity 1, phase 0
-        self.__spi.lsbfirst = False  # set to MSB_FIRST / most significant bit first
-        self.__spi.max_speed_hz = 64000000
-
         # swap width and height if selected origin is landscape mode by checking if third bit is 1
         if self.__origin.value & 0x20:
             self.__width, self.__height = self.__height, self.__width

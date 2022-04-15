@@ -5,12 +5,17 @@ import time
 import ILI9486 as LCD
 import config
 
+spi: SpiDev = None
 
 if __name__ == '__main__':
     try:
         GPIO.setmode(GPIO.BCM)
-        lcd = LCD.ILI9486(dc=config.DC_PIN, rst=config.RST_PIN, spi=SpiDev(config.SPI_BUS, config.SPI_DEVICE))\
-            .begin()
+        spi = SpiDev(config.SPI_BUS, config.SPI_DEVICE)
+        spi.mode = 0b10  # [CPOL|CPHA] -> polarity 1, phase 0
+        # default value
+        # spi.lsbfirst = False  # set to MSB_FIRST / most significant bit first
+        spi.max_speed_hz = 64000000
+        lcd = LCD.ILI9486(dc=config.DC_PIN, rst=config.RST_PIN, spi=spi).begin()
 
         print('Loading image...')
         image = Image.open('sample.png')
@@ -49,3 +54,4 @@ if __name__ == '__main__':
         pass
     finally:
         GPIO.cleanup()
+        spi.close()
