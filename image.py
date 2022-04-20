@@ -48,6 +48,12 @@ if __name__ == '__main__':
             print('Resetting display')
             lcd.begin()
             time.sleep(1)
+            print('Turning on sleep mode')
+            lcd.sleep()
+            time.sleep(1)
+            print('Turning off sleep mode')
+            lcd.wake_up()
+            time.sleep(1)
 
     except KeyboardInterrupt:
         # catching keyboard interrupt to exit, but do the cleanup in finally block

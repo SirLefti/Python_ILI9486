@@ -34,6 +34,10 @@ Run example:
 
 ## Notes
 
+Brightness control is not implemented, because many displays using this driver chip have a hardwired backlight, that cannot be controlled via the driver chip or a GPIO pin.
+Implementing it would require some hardware changes on the display unit.
+To emulate shutting off the display you can use `lcd.clear().display()`, which makes the display to show black pixels.
+
 Adafruit invests time and resources providing this open source code, please support Adafruit and open-source hardware by purchasing products from Adafruit!
 
 Written by Tony DiCola for Adafruit Industries.

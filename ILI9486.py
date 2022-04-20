@@ -265,3 +265,15 @@ class ILI9486:
     def off(self):
         """Turns the display off."""
         return self.command(CMD_DISPOFF)
+
+    def sleep(self):
+        """Turns the displays sleep mode on"""
+        self.command(CMD_SLPIN)
+        time.sleep(0.005)
+        return self
+
+    def wake_up(self):
+        """Turns the displays sleep mode off"""
+        self.command(CMD_SLPOUT)
+        time.sleep(0.005)
+        return self
