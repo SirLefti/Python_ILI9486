@@ -89,6 +89,16 @@ class Origin(Enum):
 class ILI9486:
     """Representation of an ILI9486 TFT."""
 
+    @classmethod
+    def landscape_dimensions(cls) -> tuple:
+        """Returns the display dimensions in landscape mode, no matter what mode is used"""
+        return LCD_HEIGHT, LCD_WIDTH
+
+    @classmethod
+    def portrait_dimensions(cls) -> tuple:
+        """Returns the display dimensions in portrait mode, no matter what mode is used"""
+        return LCD_WIDTH, LCD_HEIGHT
+
     def __init__(self, spi: SpiDev, dc: int, rst: int = None, *, origin: Origin = Origin.UPPER_LEFT):
         """Creates an instance of the display using the given SPI connection. Must provide the SPI driver and the GPIO
         pin number for the DC pin. Can optionally provide the GPIO pin number for the reset pin. Optionally the origin
@@ -114,6 +124,14 @@ class ILI9486:
         if self.__origin.value & 0x20:
             self.__width, self.__height = self.__height, self.__width
         self.__buffer = Image.new('RGB', (self.__width, self.__height), (0, 0, 0))
+
+    def dimensions(self) -> tuple:
+        """Returns the current display dimensions"""
+        return self.__width, self.__height
+
+    def is_landscape(self) -> bool:
+        """Returns true if selected origin is landscape mode; false otherwise"""
+        return bool(self.__origin.value & 0x20)
 
     def send(self, data, is_data=True, chunk_size=4096):
         """Writes a byte or an array of bytes to the display."""

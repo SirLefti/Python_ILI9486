@@ -16,7 +16,7 @@ if __name__ == '__main__':
         # spi.lsbfirst = False  # set to MSB_FIRST / most significant bit first
         spi.max_speed_hz = 64000000
         lcd = LCD.ILI9486(dc=config.DC_PIN, rst=config.RST_PIN, spi=spi).begin()
-
+        print(f'Initialized display with landscape mode = {lcd.is_landscape()} and dimensions {lcd.dimensions()}')
         print('Loading image...')
         image = Image.open('sample.png')
 
