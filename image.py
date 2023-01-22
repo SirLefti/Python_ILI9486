@@ -19,10 +19,15 @@ if __name__ == '__main__':
         print(f'Initialized display with landscape mode = {lcd.is_landscape()} and dimensions {lcd.dimensions()}')
         print('Loading image...')
         image = Image.open('sample.png')
+        width, height = image.size
+        partial = image.resize((width // 2, height // 2))
 
         while True:
             print('Drawing image')
             lcd.display(image)
+            time.sleep(1)
+            print('Drawing partial image')
+            lcd.display(partial)
             time.sleep(1)
             print('Turning on inverted mode')
             lcd.invert()
