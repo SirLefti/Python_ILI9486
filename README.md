@@ -21,10 +21,7 @@ python -m venv .venv
 
 Install python dependencies:
 ````bash
-.venv/bin/pip install pillow
-.venv/bin/pip install RPi.GPIO
-.venv/bin/pip install spidev
-.venv/bin/pip install numpy
+.venv/bin/pip install -r requirements.txt
 ````
 
 Run example:
