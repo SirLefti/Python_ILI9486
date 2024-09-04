@@ -1,5 +1,5 @@
 Pillow
-RPi.GPIO
+rpi-lgpio
 spidev
 numpy
 
