@@ -25,9 +25,6 @@ from PIL import Image, ImageDraw
 import RPi.GPIO as GPIO
 from spidev import SpiDev
 
-# constants
-LCD_WIDTH = 320
-LCD_HEIGHT = 480
 
 # commands
 CMD_RDPXLFMT = 0x0C
@@ -89,15 +86,8 @@ class Origin(IntEnum):
 class ILI9486:
     """Representation of an ILI9486 TFT."""
 
-    @classmethod
-    def landscape_dimensions(cls) -> tuple:
-        """Returns the display dimensions in landscape mode, no matter what mode is used"""
-        return LCD_HEIGHT, LCD_WIDTH
-
-    @classmethod
-    def portrait_dimensions(cls) -> tuple:
-        """Returns the display dimensions in portrait mode, no matter what mode is used"""
-        return LCD_WIDTH, LCD_HEIGHT
+    __LCD_WIDTH = 320
+    __LCD_HEIGHT = 480
 
     def __init__(self, spi: SpiDev, dc: int, rst: int = None, *, origin: Origin = Origin.UPPER_LEFT):
         """Creates an instance of the display using the given SPI connection. Must provide the SPI driver and the GPIO
@@ -108,8 +98,9 @@ class ILI9486:
         self.__dc = dc
         self.__rst = rst
         self.__origin = origin
-        self.__width = LCD_WIDTH
-        self.__height = LCD_HEIGHT
+
+        self.__width = self.__LCD_WIDTH
+        self.__height = self.__LCD_HEIGHT
         self.__inverted = False
         self.__idle = False
 
@@ -121,14 +112,26 @@ class ILI9486:
             GPIO.output(self.__rst, GPIO.HIGH)
 
         # swap width and height if selected origin is landscape mode by checking if third bit is 1
-        if self.__origin.value & 0x20:
+        if self.is_landscape:
             self.__width, self.__height = self.__height, self.__width
         self.__buffer = Image.new('RGB', (self.__width, self.__height), (0, 0, 0))
 
+    @property
+    def landscape_dimensions(self) -> tuple:
+        """Returns the display dimensions in landscape mode, no matter what mode is used"""
+        return self.__LCD_HEIGHT, self.__LCD_WIDTH
+
+    @property
+    def portrait_dimensions(self) -> tuple:
+        """Returns the display dimensions in portrait mode, no matter what mode is used"""
+        return self.__LCD_WIDTH, self.__LCD_HEIGHT
+
+    @property
     def dimensions(self) -> tuple:
         """Returns the current display dimensions"""
         return self.__width, self.__height
 
+    @property
     def is_landscape(self) -> bool:
         """Returns true if selected origin is landscape mode; false otherwise"""
         return bool(self.__origin.value & 0x20)
@@ -245,6 +248,7 @@ class ILI9486:
         """Returns a PIL ImageDraw instance for 2D drawing on the image buffer."""
         return ImageDraw.Draw(self.__buffer)
 
+    @property
     def is_inverted(self) -> bool:
         """Returns the current inversion state."""
         return self.__inverted
@@ -260,6 +264,7 @@ class ILI9486:
         self.__inverted = state
         return self
 
+    @property
     def is_idle(self) -> bool:
         """Returns the current idle state."""
         return self.__idle
