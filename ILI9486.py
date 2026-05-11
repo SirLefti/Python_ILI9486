@@ -18,7 +18,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-from enum import Enum
+from enum import IntEnum
 import time
 import numpy as np
 from PIL import Image, ImageDraw
@@ -59,14 +59,14 @@ CMD_PGAMCTL = 0xE0
 CMD_NGAMCTL = 0xE1
 
 
-def image_to_data(image: Image) -> object:
+def image_to_data(image: Image.Image) -> list:
     """Converts a PIL image to 666RGB format that can be drawn on the LCD."""
     pb = np.array(image.convert('RGB')).astype('uint16')
     # cut of the two least significant / rightmost bits to convert 8-bit color to 6-bit color
     return np.dstack((pb[:, :, 0] & 0xFC, pb[:, :, 1] & 0xFC, pb[:, :, 2] & 0xFC)).flatten().tolist()
 
 
-class Origin(Enum):
+class Origin(IntEnum):
     """Representation of the display origin. The origin is defined by the position of the image relative to the default
     orientation of the raspberry. The default orientation has the GPIO pins being on top, so that the raspberry logo
     and the model's name are readable. The reference point is then the upper left corner, where GPIO pin 1 is located.
@@ -133,7 +133,7 @@ class ILI9486:
         """Returns true if selected origin is landscape mode; false otherwise"""
         return bool(self.__origin.value & 0x20)
 
-    def send(self, data, is_data=True, chunk_size=4096):
+    def send(self, data: int | list, is_data=True, chunk_size=4096):
         """Writes a byte or an array of bytes to the display."""
         # dc low for command, high for data
         GPIO.output(self.__dc, is_data)
@@ -145,11 +145,11 @@ class ILI9486:
                 self.__spi.writebytes(data[start: end])
         return self
 
-    def command(self, data):
+    def command(self, data: int):
         """Writes a byte or an array of bytes to the display as a command."""
         return self.send(data, False)
 
-    def data(self, data):
+    def data(self, data: int | list):
         """Writes a byte or an array of bytes to the display as data."""
         return self.send(data, True)
 
@@ -172,8 +172,8 @@ class ILI9486:
         self.command(CMD_SLPOUT)  # turns off the sleep mode
         time.sleep(0.020)
 
-        self.command(CMD_PXLFMT).data(0x66)  # 18 bits per pixel
-        self.command(CMD_RDPXLFMT).data(0x66)  # 18 bits per pixel
+        self.command(CMD_PXLFMT).data(0x66)
+        self.command(CMD_RDPXLFMT).data(0x66)
 
         self.command(CMD_PWRCTLNOR).command(0x44)
 
@@ -197,7 +197,7 @@ class ILI9486:
         """Initializes the display by resetting it and calling the init sequence."""
         return self.reset()._init_sequence()
 
-    def set_window(self, x0=0, y0=0, x1=None, y1=None):
+    def set_window(self, x0: int = 0, y0: int = 0, x1: int | None = None, y1: int | None = None):
         """Sets the pixel address window for proceeding drawing commands."""
         if x1 is None:
             x1 = self.__width - 1
@@ -215,7 +215,7 @@ class ILI9486:
         self.data(y1 & 0xFF)
         return self
 
-    def display(self, image=None, x0 = 0, y0 = 0):
+    def display(self, image: Image.Image | None = None, x0: int = 0, y0: int = 0):
         """Writes the display buffer or provided image to the display. If no
         image is provided the display buffer will be written to the display.
         If an image is provided, it should be in RGB format and the same
@@ -228,13 +228,11 @@ class ILI9486:
         if image.mode != 'RGB':
             raise ValueError('Image must be in RGB format')
         if x1 >= self.__width or y1 >= self.__height or x0 < 0 or y0 < 0:
-            raise ValueError(
-                'Image exceeds display bounds ({0}x{1})'.format(self.__width, self.__height))
+            raise ValueError('Image exceeds display bounds ({0}x{1})'.format(self.__width, self.__height))
         self.set_window(x0, y0, x1, y1)
         data = image_to_data(image)
         self.command(CMD_WRMEM)
-        if isinstance(data, list):
-            self.data(list(data))
+        self.data(data)
         return self
 
     def clear(self, color=(0, 0, 0)):
@@ -243,7 +241,7 @@ class ILI9486:
         self.__buffer.putdata([color] * (width * height))
         return self
 
-    def draw(self) -> ImageDraw:
+    def draw(self) -> ImageDraw.ImageDraw:
         """Returns a PIL ImageDraw instance for 2D drawing on the image buffer."""
         return ImageDraw.Draw(self.__buffer)
 
