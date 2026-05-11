@@ -16,18 +16,21 @@ if __name__ == '__main__':
         # spi.lsbfirst = False  # set to MSB_FIRST / most significant bit first
         spi.max_speed_hz = 64000000
         lcd = LCD.ILI9486(dc=config.DC_PIN, rst=config.RST_PIN, spi=spi).begin()
-        print(f'Initialized display with landscape mode = {lcd.is_landscape()} and dimensions {lcd.dimensions()}')
+        print(f'Initialized display with landscape mode = {lcd.is_landscape} and dimensions {lcd.dimensions}')
         print('Loading image...')
         image = Image.open('sample.png')
         width, height = image.size
         partial = image.resize((width // 2, height // 2))
+        red = Image.new(mode='RGB', size=(width // 2, height // 2), color=(255, 0, 0))
+        green = Image.new(mode='RGB', size=(width // 2, height // 2), color=(0, 255, 0))
+        blue = Image.new(mode='RGB', size=(width // 2, height // 2), color=(0, 0, 255))
 
         while True:
             print('Drawing image')
-            lcd.display(image)
-            time.sleep(1)
-            print('Drawing partial image')
-            lcd.display(partial)
+            lcd.display(red)
+            lcd.display(green, x0 = width // 2)
+            lcd.display(blue, y0 = height // 2)
+            lcd.display(partial, x0 = width // 2, y0 = height // 2)
             time.sleep(1)
             print('Turning on inverted mode')
             lcd.invert()
