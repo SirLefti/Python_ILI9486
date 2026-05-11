@@ -6,6 +6,9 @@ Python module to control an ILI9486 LCD. Based upon the deprecated Python ILI934
 [Liqun Hu](https://github.com/huliqun/Myway_Python_ILI9486).
 Rewritten to use `spidev` and `rpi-lgpio` instead of the discontinued Adafruit counterpart libraries.
 
+## Supported displays
+* [MPI3501](https://www.lcdwiki.com/3.5inch_RPi_Display)
+* [MHS3528](https://www.lcdwiki.com/MHS-3.5inch_RPi_Display)
 
 ## Installation and use
 
@@ -43,8 +46,9 @@ black pixels.
 Adafruit invests time and resources providing this open source code, please support Adafruit and open-source hardware by
 purchasing products from Adafruit!
 
-Written by Tony DiCola for Adafruit Industries.
-Adapted for ILI9486 by Liqun Hu.
-Modified and maintained by Thorben Yzer.
+Written by Tony DiCola for Adafruit Industries.<br>
+Adapted for ILI9486 by Liqun Hu.<br>
+Modified and maintained by Thorben Yzer<br>
+Support for MHS3528 variant by Craig Lamparter and hemna.<br>
 
 MIT license, all text above must be included in any redistribution

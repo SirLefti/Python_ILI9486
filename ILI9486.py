@@ -1,5 +1,6 @@
 # Copyright (c)
-# Authors: Tony DiCola, Liqun Hu, Thorben Yzer
+# Authors: Tony DiCola (tdicola), Liqun Hu (huliqun), Thorben Yzer (SirLefti),
+# Craig Lamparter (craigerl), hemna
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,13 +19,13 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-from enum import IntEnum
 import time
-import numpy as np
-from PIL import Image, ImageDraw
-import RPi.GPIO as GPIO
-from spidev import SpiDev
+from enum import Enum, IntEnum
 
+import numpy as np
+import RPi.GPIO as GPIO
+from PIL import Image, ImageDraw
+from spidev import SpiDev
 
 # commands
 CMD_RDPXLFMT = 0x0C
@@ -48,7 +49,9 @@ CMD_IDLON = 0x39
 CMD_PXLFMT = 0x3A
 
 CMD_IFMODE = 0xB0
+CMD_DINVCTL = 0xB4
 
+CMD_PWRCTL2 = 0xC1
 CMD_PWRCTLNOR = 0xC2
 CMD_VCOMCTL = 0xC5
 
@@ -56,11 +59,15 @@ CMD_PGAMCTL = 0xE0
 CMD_NGAMCTL = 0xE1
 
 
-def image_to_data(image: Image.Image) -> list:
-    """Converts a PIL image to 666RGB format that can be drawn on the LCD."""
-    pb = np.array(image.convert('RGB')).astype('uint16')
-    # cut of the two least significant / rightmost bits to convert 8-bit color to 6-bit color
-    return np.dstack((pb[:, :, 0] & 0xFC, pb[:, :, 1] & 0xFC, pb[:, :, 2] & 0xFC)).flatten().tolist()
+# defaults
+P_GAM_DEFAULT = [0x0F, 0x1F, 0x1C, 0x0C, 0x0F, 0x08, 0x48, 0x98, 0x37, 0x0A, 0x13, 0x04, 0x11, 0x0D, 0x00]
+N_GAM_DEFAULT = [0x0F, 0x32, 0x2E, 0x0B, 0x0D, 0x05, 0x47, 0x75, 0x37, 0x06, 0x10, 0x03, 0x24, 0x20, 0x00]
+
+class SKU(Enum):
+    MPI3501 = 0
+    """Datasheet: https://www.lcdwiki.com/3.5inch_RPi_Display"""
+    MHS3528 = 1
+    """Datasheet: https://www.lcdwiki.com/MHS-3.5inch_RPi_Display"""
 
 
 class Origin(IntEnum):
@@ -83,13 +90,20 @@ class Origin(IntEnum):
     LOWER_RIGHT_MIRRORED = 0x68
 
 
+def image_to_data(image: Image.Image) -> list:
+    """Converts a PIL image to 666RGB format that can be drawn on the LCD."""
+    pb = np.array(image.convert('RGB')).astype('uint16')
+    # cut of the two least significant / rightmost bits to convert 8-bit color to 6-bit color
+    return np.dstack((pb[:, :, 0] & 0xFC, pb[:, :, 1] & 0xFC, pb[:, :, 2] & 0xFC)).flatten().tolist()
+
+
 class ILI9486:
     """Representation of an ILI9486 TFT."""
 
     __LCD_WIDTH = 320
     __LCD_HEIGHT = 480
 
-    def __init__(self, spi: SpiDev, dc: int, rst: int = None, *, origin: Origin = Origin.UPPER_LEFT):
+    def __init__(self, spi: SpiDev, dc: int, rst: int = None, *, origin: Origin = Origin.UPPER_LEFT, sku: SKU = SKU.MPI3501):
         """Creates an instance of the display using the given SPI connection. Must provide the SPI driver and the GPIO
         pin number for the DC pin. Can optionally provide the GPIO pin number for the reset pin. Optionally the origin
         can be set. The default is UPPER_LEFT, which is landscape mode this the bottom of the image located at the
@@ -98,6 +112,7 @@ class ILI9486:
         self.__dc = dc
         self.__rst = rst
         self.__origin = origin
+        self.__sku = sku
 
         self.__width = self.__LCD_WIDTH
         self.__height = self.__LCD_HEIGHT
@@ -136,6 +151,52 @@ class ILI9486:
         """Returns true if selected origin is landscape mode; false otherwise"""
         return bool(self.__origin.value & 0x20)
 
+    def __mpi3501_init(self):
+        self.command(CMD_IFMODE).data(0x00)
+        self.command(CMD_SLPOUT)  # turns off the sleep mode
+        time.sleep(0.020)
+
+        self.command(CMD_PXLFMT).data(0x66)
+        self.command(CMD_RDPXLFMT).data(0x66)
+
+        self.command(CMD_PWRCTLNOR).command(0x44)
+
+        self.command(CMD_VCOMCTL).send([0x00, 0x00, 0x00, 0x00], True, chunk_size=1)
+        self.command(CMD_PGAMCTL).send(P_GAM_DEFAULT, True, chunk_size=1)
+        self.command(CMD_NGAMCTL).send(N_GAM_DEFAULT, True, chunk_size=1)
+
+        self.command(CMD_MADCTL).data(self.__origin.value)  # memory address control
+
+        self.command(CMD_SLPOUT)
+        self.command(CMD_DISPON)
+
+    def __mhs3528_init(self):
+        # Manufacturer-specific registers
+        self.command(0xF1).data([0x36, 0x04, 0x00, 0x3C, 0x0F, 0x8F])
+        self.command(0xF2).data([0x18, 0xA3, 0x12, 0x02, 0xB2, 0x12, 0xFF, 0x10, 0x00])
+        self.command(0xF8).data([0x21, 0x04])
+        self.command(0xF9).data([0x00, 0x08])
+
+        self.command(CMD_MADCTL).data(0x08) # memory address control - initial
+
+        self.command(CMD_DINVCTL).data(0x00)
+
+        self.command(CMD_PWRCTL2).data(0x41)
+
+        self.command(CMD_VCOMCTL).data([0x00, 0x91, 0x80, 0x00])
+        self.command(CMD_PGAMCTL).data(P_GAM_DEFAULT)
+        self.command(CMD_NGAMCTL).data(N_GAM_DEFAULT)
+
+        self.command(CMD_PXLFMT).data(0x66)
+        self.command(CMD_SLPOUT)
+        self.command(CMD_MADCTL).data(self.__origin.value) # memory address control - final origin
+
+        # Delay 255ms
+        time.sleep(0.255)
+
+        # Display On
+        self.command(CMD_DISPON)
+
     def send(self, data: int | list, is_data=True, chunk_size=4096):
         """Writes a byte or an array of bytes to the display."""
         # dc low for command, high for data
@@ -171,29 +232,11 @@ class ILI9486:
 
     def _init_sequence(self):
         """Initializes the display. Protected in case you want to override it for e.g. gamma control"""
-        self.command(CMD_IFMODE).data(0x00)
-        self.command(CMD_SLPOUT)  # turns off the sleep mode
-        time.sleep(0.020)
-
-        self.command(CMD_PXLFMT).data(0x66)
-        self.command(CMD_RDPXLFMT).data(0x66)
-
-        self.command(CMD_PWRCTLNOR).command(0x44)
-
-        self.command(CMD_VCOMCTL).send([0x00, 0x00, 0x00, 0x00], True, chunk_size=1)
-
-        self.command(CMD_PGAMCTL)\
-            .send([0x0F, 0x1F, 0x1C, 0x0C, 0x0F, 0x08, 0x48, 0x98, 0x37, 0x0A, 0x13, 0x04, 0x11, 0x0D, 0x00], True,
-                  chunk_size=1)  # values must be sent one by one, thus setting chunk size to 1
-
-        self.command(CMD_NGAMCTL)\
-            .send([0x0F, 0x32, 0x2E, 0x0B, 0x0D, 0x05, 0x47, 0x75, 0x37, 0x06, 0x10, 0x03, 0x24, 0x20, 0x00], True,
-                  chunk_size=1)  # values must be sent one by one, thus setting chunk size to 1
-
-        self.command(CMD_MADCTL).data(self.__origin.value)  # memory address control
-
-        self.command(CMD_SLPOUT)
-        self.command(CMD_DISPON)
+        match self.__sku:
+            case SKU.MPI3501:
+                self.__mpi3501_init()
+            case SKU.MHS3528:
+                self.__mhs3528_init()
         return self
 
     def begin(self):
