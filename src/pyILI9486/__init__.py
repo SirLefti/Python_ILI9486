@@ -23,9 +23,10 @@ import time
 from enum import Enum, IntEnum
 
 import numpy as np
-import RPi.GPIO as GPIO
 from PIL import Image, ImageDraw
 from spidev import SpiDev
+
+from pyILI9486.gpio import GPIOFacade, Pin
 
 # commands
 CMD_RDPXLFMT = 0x0C
@@ -103,14 +104,14 @@ class ILI9486:
     __LCD_WIDTH = 320
     __LCD_HEIGHT = 480
 
-    def __init__(self, spi: SpiDev, dc: int, rst: int = None, *, origin: Origin = Origin.UPPER_LEFT, sku: SKU = SKU.MPI3501):
+    def __init__(self, spi: SpiDev, gpio_facade: GPIOFacade, *,
+                 origin: Origin = Origin.UPPER_LEFT, sku: SKU = SKU.MPI3501):
         """Creates an instance of the display using the given SPI connection. Must provide the SPI driver and the GPIO
         pin number for the DC pin. Can optionally provide the GPIO pin number for the reset pin. Optionally the origin
         can be set. The default is UPPER_LEFT, which is landscape mode this the bottom of the image located at the
         power, video and audio out are of the Pi."""
         self.__spi = spi
-        self.__dc = dc
-        self.__rst = rst
+        self.__gpio = gpio_facade
         self.__origin = origin
         self.__sku = sku
 
@@ -118,13 +119,6 @@ class ILI9486:
         self.__height = self.__LCD_HEIGHT
         self.__inverted = False
         self.__idle = False
-
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(self.__dc, GPIO.OUT)
-        GPIO.output(self.__dc, GPIO.HIGH)
-        if self.__rst is not None:
-            GPIO.setup(self.__rst, GPIO.OUT)
-            GPIO.output(self.__rst, GPIO.HIGH)
 
         # swap width and height if selected origin is landscape mode by checking if third bit is 1
         if self.is_landscape:
@@ -200,14 +194,14 @@ class ILI9486:
     def send(self, data: int | list, is_data=True, chunk_size=4096):
         """Writes a byte or an array of bytes to the display."""
         # dc low for command, high for data
-        GPIO.output(self.__dc, is_data)
-        if isinstance(data, int):
-            self.__spi.writebytes([data])
-        else:
-            for start in range(0, len(data), chunk_size):
-                end = min(start + chunk_size, len(data))
-                self.__spi.writebytes(data[start: end])
-        return self
+        with self.__gpio.set_values({Pin.DC: is_data}):
+            if isinstance(data, int):
+                self.__spi.writebytes([data])
+            else:
+                for start in range(0, len(data), chunk_size):
+                    end = min(start + chunk_size, len(data))
+                    self.__spi.writebytes(data[start: end])
+            return self
 
     def command(self, data: int):
         """Writes a byte or an array of bytes to the display as a command."""
@@ -219,12 +213,12 @@ class ILI9486:
 
     def reset(self):
         """Resets the display if a reset pin is provided."""
-        if self.__rst is not None:
-            GPIO.output(self.__rst, GPIO.HIGH)
+        with self.__gpio.set_values({Pin.RS: True}) as context:
+            context.set_value(Pin.RS, True)
             time.sleep(.001)  # wait a bit to make sure the output was HIGH
-            GPIO.output(self.__rst, GPIO.LOW)
+            context.set_value(Pin.RS, False)
             time.sleep(.000100)  # wait 100 µs to trigger the reset (should be 10 µs, but the OS is not precise enough)
-            GPIO.output(self.__rst, GPIO.HIGH)
+            context.set_value(Pin.RS, True)
             time.sleep(.120)  # wait 120 ms for finishing blanking and resetting
             self.__inverted = False
             self.__idle = False

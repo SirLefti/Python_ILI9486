@@ -4,7 +4,8 @@ Python ILI9486 Display Driver
 Python module to control an ILI9486 LCD. Based upon the deprecated Python ILI9341 from
 [Adafruit](https://github.com/adafruit/Adafruit_Python_ILI9341) and the adapted version for ILI9486 from
 [Liqun Hu](https://github.com/huliqun/Myway_Python_ILI9486).
-Rewritten to use `spidev` and `rpi-lgpio` instead of the discontinued Adafruit counterpart libraries.
+Rewritten to use `spidev` and either `gpiod`, `lgpio` or `rpi-gpio` instead of the discontinued Adafruit counterpart
+libraries.
 
 ## Supported displays
 * [MPI3501](https://www.lcdwiki.com/3.5inch_RPi_Display)
@@ -14,25 +15,44 @@ Rewritten to use `spidev` and `rpi-lgpio` instead of the discontinued Adafruit c
 
 Call `sudo raspi-config` and then select `Interface Options > SPI` to enable SPI.
 
-Install system dependencies:
-````bash
-sudo apt install libopenjp2-7 libopenblas0 python3 python3-rpi-lgpio
-````
+```py
+# config (should be the same for basically all displays you can buy)
+DC_PIN = 24
+RS_PIN = 25
+SPI_BUS = 0
+SPI_DEVICE = 0
 
-Create a virtual environment:
-````bash
-python -m venv .venv
-````
+# create SPI device
+from spidev import SpiDev
+spi = SpiDev(SPI_BUS, SPI_DEVICE)
+spi.mode = 0b10  # [CPOL|CPHA] -> polarity 1, phase 0
+spi.max_speed_hz = 64000000
 
-Install python dependencies:
-````bash
-.venv/bin/pip install -r requirements.txt
-````
+# create GPIO facade (choose the one you already use in your project, or pick `gpiod` or `lgpio`)
+from gpio.lgpio_facade import LGPIOFacade
+gpio_facade = LGPIOFacade(DC_PIN, RS_PIN)
 
-Run example:
-````bash
-.venv/bin/python image.py
-````
+# create the LCD instance
+from pyILI9486 import ILI9486
+lcd = ILI9486(spi, gpio_facade)
+
+# draw some stuff
+from PIL import Image
+
+width, height = lcd.dimensions
+
+red = Image.new(mode='RGB', size=(width // 2, height // 2), color=(255, 0, 0))
+green = Image.new(mode='RGB', size=(width // 2, height // 2), color=(0, 255, 0))
+blue = Image.new(mode='RGB', size=(width // 2, height // 2), color=(0, 0, 255))
+white = Image.new(mode='RGB', size=(width // 2, height // 2), color=(255, 255, 255))
+
+lcd.begin()
+
+lcd.display(red, 0, 0)
+lcd.display(green, width // 2, 0)
+lcd.display(blue, 0, height // 2)
+lcd.display(white, width // 2, height // 2)
+```
 
 ## Notes
 
