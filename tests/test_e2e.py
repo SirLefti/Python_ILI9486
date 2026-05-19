@@ -7,7 +7,8 @@ import pytest
 from PIL import Image
 from spidev import SpiDev
 
-from pyILI9486 import ILI9486, GPIOFacade
+from pyILI9486 import ILI9486
+from pyILI9486.gpio import GPIOFacade
 from pyILI9486.gpio.gpiod_facade import GPIODFacade
 from pyILI9486.gpio.lgpio_facade import LGPIOFacade
 from pyILI9486.gpio.rpilgpio_facade import RPiLGPIOFacade
