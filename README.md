@@ -68,7 +68,7 @@ purchasing products from Adafruit!
 
 Written by Tony DiCola for Adafruit Industries.<br>
 Adapted for ILI9486 by Liqun Hu.<br>
-Modified and maintained by Thorben Yzer<br>
+Modified and maintained by Thorben Yzer.<br>
 Support for MHS3528 variant by Craig Lamparter and hemna.<br>
 
 MIT license, all text above must be included in any redistribution
