@@ -1,0 +1,39 @@
+[project]
+name = "pyILI9486"
+version = "1.0.0"
+description = "display library for ILI9486 based SPI displays"
+authors = [
+    { name = "Tony Di Cola (tdicola)" },
+    { name = "Liqun Hu (huliqun)" },
+    { name = "Thorben Yzer (SirLefti)", email = "62506842+SirLefti@users.noreply.github.com" },
+    { name = "Craig Lamparter (craigerl)" },
+    { name = "hemna" }
+]
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+
+dependencies = [
+    "Pillow>=12.0.0",
+    "spidev>=3.8; sys_platform == 'linux'",
+    "numpy>=2.4.0"
+]
+
+[project.optional-dependencies]
+gpiod = ["gpiod>=2.4.0"]
+rpilgpio = ["rpi-lgpio>=0.6"]
+lgpio = ["lgpio>=0.2.2.0"]
+build = ["uv_build"]
+dev = ["isort", "pytest"]
+
+[project.urls]
+Homepage = "https://github.com/SirLefti/Python_ILI9486"
+Source = "https://github.com/SirLefti/Python_ILI9486"
+
+[build-system]
+requires = ["uv_build>=0.11.12,<0.12"]
+build-backend = "uv_build"
+
+[tool.pytest]
+pythonpath = ["src"]
+testpaths = ["tests"]

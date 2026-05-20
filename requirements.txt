@@ -1,5 +1,0 @@
-Pillow
-rpi-lgpio
-spidev
-numpy
-
