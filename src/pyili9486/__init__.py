@@ -26,12 +26,12 @@ from typing import TYPE_CHECKING
 import numpy as np
 from PIL import Image, ImageDraw
 
-from pyILI9486.gpio import Pin
+from pyili9486.gpio import Pin
 
 if TYPE_CHECKING:
     from spidev import SpiDev
 
-    from pyILI9486.gpio import GPIOFacade
+    from pyili9486.gpio import GPIOFacade
 else:
     SpiDev = object
     GPIOFacade = object

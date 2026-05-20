@@ -29,11 +29,11 @@ spi.mode = 0b10  # [CPOL|CPHA] -> polarity 1, phase 0
 spi.max_speed_hz = 64000000
 
 # create GPIO facade (choose the one you already use in your project, or pick `gpiod` or `lgpio`)
-from gpio.lgpio_facade import LGPIOFacade
+from pyili9486.gpio.lgpio_facade import LGPIOFacade
 gpio_facade = LGPIOFacade(DC_PIN, RS_PIN)
 
 # create the LCD instance
-from pyILI9486 import ILI9486
+from pyili9486 import ILI9486
 lcd = ILI9486(spi, gpio_facade)
 
 # draw some stuff

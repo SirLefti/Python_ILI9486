@@ -7,3 +7,5 @@
 
 # Python files
 __pycache__/
+dist/
+uv.lock

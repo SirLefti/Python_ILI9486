@@ -1,7 +1,7 @@
 import gpiod
 from gpiod.line import Direction, Value
 
-from pyILI9486.gpio import GPIOContext, GPIOFacade, Pin, PinConfig, PinMap
+from pyili9486.gpio import GPIOContext, GPIOFacade, Pin, PinConfig, PinMap
 
 
 class _GPIODContext(GPIOContext):

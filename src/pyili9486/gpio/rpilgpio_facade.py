@@ -2,7 +2,7 @@ from typing import Self
 
 import RPi.GPIO as GPIO
 
-from pyILI9486.gpio import GPIOContext, GPIOFacade, Pin, PinConfig, PinMap
+from pyili9486.gpio import GPIOContext, GPIOFacade, Pin, PinConfig, PinMap
 
 
 class _RPiLGPIOContext(GPIOContext):
