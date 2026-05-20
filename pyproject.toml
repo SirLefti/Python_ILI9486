@@ -1,6 +1,6 @@
 [project]
 name = "pyILI9486"
-version = "0.1.0"
+version = "1.0.0"
 description = "display library for ILI9486 based SPI displays"
 authors = [
     { name = "Tony Di Cola (tdicola)" },
