@@ -3,15 +3,12 @@ name = "pyILI9486"
 version = "1.0.0"
 description = "display library for ILI9486 based SPI displays"
 authors = [
-    { name = "Tony Di Cola (tdicola)" },
-    { name = "Liqun Hu (huliqun)" },
-    { name = "Thorben Yzer (SirLefti)", email = "62506842+SirLefti@users.noreply.github.com" },
-    { name = "Craig Lamparter (craigerl)" },
-    { name = "hemna" }
+    { name = "Thorben Yzer (SirLefti)", email = "62506842+SirLefti@users.noreply.github.com" }
 ]
 readme = "README.md"
 requires-python = ">=3.11"
-license = { file = "LICENSE" }
+license = "MIT"
+license-files = ["LICENSE"]
 
 dependencies = [
     "Pillow>=12.0.0",

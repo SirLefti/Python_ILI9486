@@ -1,7 +1,9 @@
 Python ILI9486 Display Driver
 =============================
 
-Python module to control an ILI9486 LCD. Based upon the deprecated Python ILI9341 from
+[![pypi](https://img.shields.io/pypi/v/pyili9486.svg)](https://pypi.python.org/pypi/pyili9486)
+
+`pyILI9486` is a Python library to control an ILI9486 LCD. Based upon the deprecated Python ILI9341 from
 [Adafruit](https://github.com/adafruit/Adafruit_Python_ILI9341) and the adapted version for ILI9486 from
 [Liqun Hu](https://github.com/huliqun/Myway_Python_ILI9486).
 Rewritten to use `spidev` and either `gpiod`, `lgpio` or `rpi-gpio` instead of the discontinued Adafruit counterpart
@@ -13,7 +15,28 @@ libraries.
 
 ## Installation and use
 
+Install the lib with `pip install pyili9486`, or an equivalent for your python package manager. 
+
+### GPIO backends
+
+This library can use various GPIO backends for internal GPIO control (data and command selection, reset handling). It is
+recommended to use the same GPIO library, that you also use in the rest of your project to avoid resource locks. If you
+aren't using any library yet, choose `gpiod` or `lgpio`, both are modern implementations with a wide compatibility with
+modern Raspberry Pi boards.
+
+`rpi-lgpio` is a special case. For a long time, `RPi.GPIO` was a widely used library for easy GPIO control. It is
+considered outdated now, `rpi-lgpio` is a replacement package, wrapping `lgpio` behind a code facade, that exposes the
+same API and namespace as `RPi.GPIO`, making it a drop-in replacement. Technically, the `rpi-lgpio` implementation of
+this library will also work with the original `RPi.GPIO` being installed.
+
+The necessary backend libraries can be automatically installed by providing it as an extra, e.g.
+`pip install pyili9486[lgpio]` (or `pyili9486[gpiod]`, `pyili9486[rpi-lgpio]`).
+
+### Enable SPI
+
 Call `sudo raspi-config` and then select `Interface Options > SPI` to enable SPI.
+
+### Example
 
 ```py
 # config (should be the same for basically all displays you can buy)
