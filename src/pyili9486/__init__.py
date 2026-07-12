@@ -78,9 +78,17 @@ class SKU(Enum):
     Representation of the supported display SKUs. Check the linked wiki pages to see which one is yours.
     """
     MPI3501 = 0
-    """Datasheet: https://www.lcdwiki.com/3.5inch_RPi_Display"""
+    """
+    Datasheet: https://www.lcdwiki.com/3.5inch_RPi_Display
+    
+    Usually requires SPI mode `0b10` ([CPOL|CPHA] -> polarity 1, phase 0)
+    """
     MHS3528 = 1
-    """Datasheet: https://www.lcdwiki.com/MHS-3.5inch_RPi_Display"""
+    """
+    Datasheet: https://www.lcdwiki.com/MHS-3.5inch_RPi_Display
+    
+    Usually requires SPI mode `0b00` ([CPOL|CPHA] -> polarity 0, phase 0)
+    """
 
 
 class PixelFormat(IntEnum):
