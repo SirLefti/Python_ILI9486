@@ -262,7 +262,7 @@ class ILI9486:
         # Display On
         self.command(CMD_DISPON)
 
-    def send(self, data: int | list[int] | bytes, is_data: bool = True, chunk_size: int = 4096):
+    def send(self, data: int | list[int] | bytes, is_data: bool = True, chunk_size: int | None = None):
         """
         Writes a byte or an array of bytes to the display.
         :param data: data as int or list of int
@@ -273,11 +273,13 @@ class ILI9486:
         # dc low for command, high for data
         with self.__gpio.set_values({Pin.DC: is_data}):
             if isinstance(data, int):
-                self.__spi.writebytes([data])
+                data = [data]
+            if chunk_size is None:
+                self.__spi.writebytes2(data)
             else:
                 for start in range(0, len(data), chunk_size):
                     end = min(start + chunk_size, len(data))
-                    self.__spi.writebytes(data[start: end])
+                    self.__spi.writebytes2(data[start: end])
             return self
 
     def command(self, data: int):
