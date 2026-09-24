@@ -130,7 +130,7 @@ class Origin(IntEnum):
     LOWER_RIGHT_MIRRORED = 0x68
 
 
-def image_to_data(image: Image.Image, pixel_format: PixelFormat) -> list[int]:
+def image_to_data(image: Image.Image, pixel_format: PixelFormat) -> bytes:
     """
     Converts a PIL image to RGB666 or RGB565 format that can be drawn on the LCD.
     :param image: PIL image to convert
@@ -147,11 +147,11 @@ def image_to_data(image: Image.Image, pixel_format: PixelFormat) -> list[int]:
 
             rgb565 = (r << 11) | (g << 5) | b
 
-            return rgb565.astype(np.uint16).byteswap().view(np.uint8).flatten().tolist()
+            return rgb565.astype(np.uint16).byteswap().view(np.uint8).tobytes()
 
         case PixelFormat.RGB666:
             pb = np.array(image.convert('RGB')).astype(np.uint16)
-            return (pb & 0xFC).astype(np.uint8).flatten().tolist()
+            return (pb & 0xFC).astype(np.uint8).tobytes()
 
 
 class ILI9486:
@@ -262,7 +262,7 @@ class ILI9486:
         # Display On
         self.command(CMD_DISPON)
 
-    def send(self, data: int | list[int], is_data: bool = True, chunk_size: int = 4096):
+    def send(self, data: int | list[int] | bytes, is_data: bool = True, chunk_size: int | None = None):
         """
         Writes a byte or an array of bytes to the display.
         :param data: data as int or list of int
@@ -273,11 +273,13 @@ class ILI9486:
         # dc low for command, high for data
         with self.__gpio.set_values({Pin.DC: is_data}):
             if isinstance(data, int):
-                self.__spi.writebytes([data])
+                data = [data]
+            if chunk_size is None:
+                self.__spi.writebytes2(data)
             else:
                 for start in range(0, len(data), chunk_size):
                     end = min(start + chunk_size, len(data))
-                    self.__spi.writebytes(data[start: end])
+                    self.__spi.writebytes2(data[start: end])
             return self
 
     def command(self, data: int):
@@ -288,7 +290,7 @@ class ILI9486:
         """
         return self.send(data, False)
 
-    def data(self, data: int | list[int]):
+    def data(self, data: int | list[int] | bytes):
         """
         Writes a byte or an array of bytes to the display as data.
         :param data: data as int or list of int
